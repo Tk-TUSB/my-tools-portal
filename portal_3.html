@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --color-bg-base:         #F0EDE5;
+  --color-surface-default: #FFFFFF;
+  --color-surface-raised:  #F0EDE5;
+  --color-border-subtle:   #C9DCEE;
+  --color-border-default:  #A89A7A;
+  --color-text-primary:    #342F22;
+  --color-text-secondary:  #524A38;
+  --color-text-muted:      #7A6E56;
+  --color-text-on-dark:    #EEF4FA;
+  --color-primary-subtle:  #EDF6F4;
+  --color-primary-light:   #B8DED8;
+  --color-primary-base:    #4EA89E;
+  --color-primary-strong:  #2D8880;
+  --color-accent-subtle:   #FAF0EC;
+  --color-accent-light:    #F2C9B4;
+  --color-accent-base:     #CE6E44;
+  --color-accent-strong:   #A04A28;
+  --color-neutral-50:      #F0EDE5;
+  --color-neutral-100:     #D2C9B0;
+  --shadow-sm:   0 1px  4px rgba(52,47,34,0.08);
+  --shadow-md:   0 4px 16px rgba(52,47,34,0.10);
+  --shadow-glow: 0 0   20px rgba(78,168,158,0.22);
+  --font-sans:   'Noto Sans JP', sans-serif;
+  --font-serif:  'Noto Serif JP', serif;
+  --ease: cubic-bezier(0.4,0,0.2,1);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg-base:         #1C1A14;
+    --color-surface-default: #2E2920;
+    --color-surface-raised:  #39331F;
+    --color-border-subtle:   #3A3828;
+    --color-border-default:  #524A38;
+    --color-text-primary:    #EEF4FA;
+    --color-text-secondary:  #C9DCEE;
+    --color-text-muted:      #7DA8D2;
+    --color-text-on-dark:    #EEF4FA;
+    --color-primary-subtle:  #0D2E2B;
+    --color-primary-light:   #1A5E58;
+    --color-primary-base:    #4EA89E;
+    --color-primary-strong:  #7DC3BA;
+    --color-accent-subtle:   #2A1208;
+    --color-accent-light:    #6E2E12;
+    --color-accent-base:     #CE6E44;
+    --color-neutral-50:      #2E2920;
+    --color-neutral-100:     #524A38;
+    --shadow-sm:   0 1px  4px rgba(0,0,0,0.30);
+    --shadow-md:   0 4px 16px rgba(0,0,0,0.40);
+    --shadow-glow: 0 0   24px rgba(78,168,158,0.30);
+  }
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font-sans);background:var(--color-bg-base);color:var(--color-text-primary);min-height:100vh;line-height:1.7;}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 60% 40% at 80% 10%,rgba(78,168,158,0.08) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 35% at 10% 80%,rgba(125,168,210,0.07) 0%,transparent 55%);
+}
+.page{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:0 1.5rem 5rem;}
+
+/* ── Auth Modal ── */
+.modal-bg{
+  display:none;position:fixed;inset:0;z-index:100;
+  background:rgba(28,26,20,0.6);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;
+}
+.modal-bg.show{display:flex;}
+.modal{
+  background:var(--color-surface-default);
+  border:1px solid var(--color-border-subtle);
+  border-radius:20px;padding:2rem;width:100%;max-width:380px;
+  box-shadow:var(--shadow-md);
+}
+.modal h2{font-family:var(--font-serif);font-size:1.1rem;font-weight:700;margin-bottom:1.5rem;color:var(--color-text-primary);}
+.modal-tabs{display:flex;gap:0;margin-bottom:1.5rem;border:1px solid var(--color-border-subtle);border-radius:8px;overflow:hidden;}
+.modal-tab{
+  flex:1;padding:8px;font-family:var(--font-sans);font-size:0.8rem;
+  background:transparent;border:none;cursor:pointer;
+  color:var(--color-text-muted);transition:all 200ms;
+}
+.modal-tab.active{background:var(--color-primary-base);color:var(--color-text-on-dark);}
+.form-group{margin-bottom:1rem;}
+.form-group label{display:block;font-size:0.75rem;color:var(--color-text-muted);margin-bottom:0.35rem;}
+.form-group input{
+  width:100%;font-family:var(--font-sans);font-size:0.875rem;
+  padding:0.6rem 0.85rem;
+  background:var(--color-surface-raised);
+  border:1px solid var(--color-border-subtle);
+  border-radius:8px;color:var(--color-text-primary);outline:none;
+  transition:border-color 200ms;
+}
+.form-group input:focus{border-color:var(--color-primary-base);}
+.btn{
+  width:100%;padding:0.7rem;font-family:var(--font-sans);font-size:0.875rem;
+  font-weight:500;border:none;border-radius:8px;cursor:pointer;
+  transition:all 200ms var(--ease);
+}
+.btn-primary{background:var(--color-primary-base);color:var(--color-text-on-dark);}
+.btn-primary:hover{background:var(--color-primary-strong);}
+.btn-ghost{background:transparent;color:var(--color-text-muted);border:1px solid var(--color-border-subtle);}
+.btn-ghost:hover{background:var(--color-surface-raised);}
+.modal-msg{font-size:0.75rem;margin-top:0.75rem;text-align:center;min-height:1rem;}
+.modal-msg.error{color:var(--color-accent-base);}
+.modal-msg.success{color:var(--color-primary-strong);}
+.modal-close{
+  position:absolute;top:1rem;right:1rem;
+  background:none;border:none;cursor:pointer;
+  font-size:1.2rem;color:var(--color-text-muted);
+  line-height:1;
+}
+
+/* ── Post Modal ── */
+.post-modal{
+  display:none;position:fixed;inset:0;z-index:100;
+  background:rgba(28,26,20,0.6);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;
+}
+.post-modal.show{display:flex;}
+.post-modal .modal{max-width:480px;}
+.post-modal textarea{
+  width:100%;font-family:var(--font-sans);font-size:0.875rem;
+  padding:0.6rem 0.85rem;resize:vertical;min-height:80px;
+  background:var(--color-surface-raised);
+  border:1px solid var(--color-border-subtle);
+  border-radius:8px;color:var(--color-text-primary);outline:none;
+  transition:border-color 200ms;
+}
+.post-modal textarea:focus{border-color:var(--color-primary-base);}
+.tag-input-wrap{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.tag-input-wrap input{flex:1;min-width:120px;}
+.toggle-wrap{display:flex;align-items:center;gap:10px;margin-top:0.5rem;}
+.toggle{position:relative;width:40px;height:22px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.slider{
+  position:absolute;inset:0;background:var(--color-neutral-100);
+  border-radius:99px;cursor:pointer;transition:background 200ms;
+}
+.slider::before{
+  content:'';position:absolute;width:16px;height:16px;
+  left:3px;top:3px;background:#fff;border-radius:50%;
+  transition:transform 200ms;
+}
+.toggle input:checked + .slider{background:var(--color-primary-base);}
+.toggle input:checked + .slider::before{transform:translateX(18px);}
+.toggle-label{font-size:0.8rem;color:var(--color-text-secondary);}
+.daily-limit{font-size:0.72rem;color:var(--color-text-muted);margin-top:0.5rem;}
+
+/* ── Header ── */
+.site-header{
+  padding:2.5rem 0 2rem;
+  border-bottom:1px solid var(--color-border-subtle);
+  margin-bottom:2.5rem;
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:1rem;flex-wrap:wrap;
+}
+.site-kana{font-family:var(--font-serif);font-size:0.68rem;color:var(--color-primary-base);letter-spacing:0.28em;margin-bottom:0.35rem;display:block;}
+.site-title{font-family:var(--font-serif);font-size:1.8rem;font-weight:700;color:var(--color-text-primary);letter-spacing:0.04em;display:flex;align-items:center;gap:0.5rem;}
+.dot{display:inline-block;width:7px;height:7px;background:var(--color-accent-base);border-radius:50%;margin-bottom:3px;flex-shrink:0;}
+.site-desc{font-size:0.78rem;color:var(--color-text-muted);margin-top:0.4rem;}
+.header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.header-user{font-size:0.75rem;color:var(--color-text-muted);display:none;}
+.header-user.show{display:block;}
+.btn-sm{
+  font-family:var(--font-sans);font-size:0.75rem;padding:6px 14px;
+  border-radius:9999px;cursor:pointer;transition:all 200ms var(--ease);border:1px solid;
+}
+.btn-sm-primary{background:var(--color-primary-base);color:var(--color-text-on-dark);border-color:var(--color-primary-base);}
+.btn-sm-primary:hover{background:var(--color-primary-strong);}
+.btn-sm-ghost{background:transparent;color:var(--color-text-secondary);border-color:var(--color-border-default);}
+.btn-sm-ghost:hover{background:var(--color-surface-raised);}
+.btn-sm-accent{background:var(--color-accent-base);color:var(--color-text-on-dark);border-color:var(--color-accent-base);}
+.btn-sm-accent:hover{background:var(--color-accent-strong);}
+
+/* ── Search ── */
+.search-section{margin-bottom:1.25rem;}
+.search-wrap{position:relative;}
+.search-wrap input{
+  width:100%;font-family:var(--font-sans);font-size:0.9rem;
+  padding:0.75rem 1rem 0.75rem 2.75rem;
+  background:var(--color-surface-default);
+  border:1px solid var(--color-border-subtle);
+  border-radius:12px;color:var(--color-text-primary);
+  outline:none;box-shadow:var(--shadow-sm);
+  transition:border-color 200ms var(--ease),box-shadow 200ms var(--ease);
+}
+.search-wrap input::placeholder{color:var(--color-text-muted);}
+.search-wrap input:focus{border-color:var(--color-primary-base);box-shadow:var(--shadow-glow);}
+.search-icon{position:absolute;left:0.85rem;top:50%;transform:translateY(-50%);width:15px;height:15px;pointer-events:none;fill:none;stroke:var(--color-text-muted);stroke-width:2;stroke-linecap:round;}
+.search-hint{font-size:0.72rem;color:var(--color-primary-strong);min-height:1.4rem;margin-top:0.4rem;padding-left:0.25rem;display:none;align-items:center;gap:0.3rem;}
+.search-hint.show{display:flex;}
+
+/* ── Filters ── */
+.filter-section{margin-bottom:2rem;}
+.filter-label{font-size:0.68rem;letter-spacing:0.12em;color:var(--color-text-muted);margin-bottom:0.6rem;}
+.tag-filters{display:flex;gap:6px;flex-wrap:wrap;}
+.tag-btn{
+  font-family:var(--font-sans);font-size:0.75rem;padding:5px 14px;
+  border:1px solid var(--color-border-subtle);border-radius:9999px;
+  background:var(--color-surface-default);color:var(--color-text-secondary);
+  cursor:pointer;box-shadow:var(--shadow-sm);transition:all 200ms var(--ease);
+}
+.tag-btn:hover{border-color:var(--color-primary-light);color:var(--color-primary-strong);background:var(--color-primary-subtle);}
+.tag-btn.active{background:var(--color-primary-base);color:var(--color-text-on-dark);border-color:var(--color-primary-base);box-shadow:var(--shadow-glow);}
+
+.ornament{text-align:center;color:var(--color-primary-light);font-size:0.72rem;letter-spacing:0.5em;margin:0.5rem 0 1.5rem;user-select:none;}
+.grid-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.grid-count{font-size:0.75rem;color:var(--color-text-muted);}
+
+/* ── Grid & Cards ── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;}
+.card{
+  background:var(--color-surface-default);
+  border:1px solid var(--color-border-subtle);
+  border-radius:20px;padding:1.4rem 1.5rem;
+  text-decoration:none;color:inherit;
+  display:flex;flex-direction:column;gap:10px;
+  box-shadow:var(--shadow-sm);position:relative;overflow:hidden;
+  transition:border-color 200ms var(--ease),box-shadow 200ms var(--ease),transform 200ms var(--ease);
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--color-primary-light),var(--color-accent-light));
+  opacity:0;transition:opacity 200ms;
+}
+.card:hover{border-color:var(--color-primary-light);box-shadow:var(--shadow-md),var(--shadow-glow);transform:translateY(-2px);}
+.card:hover::before{opacity:1;}
+.card.hidden{display:none;}
+.card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.card-icon-wrap{width:40px;height:40px;flex-shrink:0;background:var(--color-primary-subtle);border:1px solid var(--color-primary-light);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.card-arrow{font-size:12px;color:var(--color-text-muted);opacity:0;transition:opacity 200ms;}
+.card:hover .card-arrow{opacity:1;}
+.card-title{font-family:var(--font-serif);font-size:0.95rem;font-weight:700;color:var(--color-text-primary);line-height:1.4;}
+.card-desc{font-size:0.78rem;color:var(--color-text-secondary);line-height:1.65;}
+.card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:2px;}
+.card-tags{display:flex;gap:5px;flex-wrap:wrap;}
+.card-tag{font-size:0.68rem;padding:2px 10px;border-radius:9999px;background:var(--color-neutral-50);border:1px solid var(--color-border-subtle);color:var(--color-text-muted);}
+.card-badge{font-size:0.65rem;padding:2px 8px;border-radius:9999px;background:var(--color-accent-subtle);border:1px solid var(--color-accent-light);color:var(--color-accent-strong);}
+
+/* loading / empty */
+.loading{text-align:center;padding:3rem 0;color:var(--color-text-muted);font-size:0.85rem;}
+.empty{display:none;text-align:center;padding:4rem 0;color:var(--color-text-muted);}
+.empty-icon{font-size:2rem;margin-bottom:0.75rem;opacity:0.5;}
+.empty p{font-size:0.85rem;}
+
+.site-footer{margin-top:4rem;padding-top:1.5rem;border-top:1px solid var(--color-border-subtle);text-align:center;font-size:0.7rem;color:var(--color-text-muted);letter-spacing:0.08em;}
+</style>
+</head>
+<body>
+
+<!-- ── Auth Modal ── -->
+<div class="modal-bg" id="authModal">
+  <div class="modal" style="position:relative;">
+    <button class="modal-close" onclick="closeAuthModal()">✕</button>
+    <h2>アカウント</h2>
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="tabLogin" onclick="switchTab('login')">ログイン</button>
+      <button class="modal-tab" id="tabSignup" onclick="switchTab('signup')">新規登録</button>
+    </div>
+    <div id="authForm">
+      <div class="form-group">
+        <label>メールアドレス</label>
+        <input type="email" id="authEmail" placeholder="you@example.com"/>
+      </div>
+      <div class="form-group">
+        <label>パスワード</label>
+        <input type="password" id="authPassword" placeholder="••••••••"/>
+      </div>
+      <button class="btn btn-primary" onclick="handleAuth()">ログイン</button>
+      <div class="modal-msg" id="authMsg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Post Modal ── -->
+<div class="post-modal" id="postModal">
+  <div class="modal" style="position:relative;">
+    <button class="modal-close" onclick="closePostModal()">✕</button>
+    <h2>ツールを投稿する</h2>
+    <div class="form-group">
+      <label>アイコン（絵文字）</label>
+      <input type="text" id="postIcon" value="🔧" maxlength="2"/>
+    </div>
+    <div class="form-group">
+      <label>タイトル *</label>
+      <input type="text" id="postTitle" placeholder="ツール名"/>
+    </div>
+    <div class="form-group">
+      <label>説明</label>
+      <textarea id="postDesc" placeholder="このツールでできること…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>URL</label>
+      <input type="url" id="postUrl" placeholder="https://"/>
+    </div>
+    <div class="form-group">
+      <label>公開タグ（カンマ区切り）</label>
+      <input type="text" id="postTags" placeholder="生活, 管理, エンタメ"/>
+    </div>
+    <div class="form-group">
+      <label>非公開タグ・検索キーワード（カンマ区切り）</label>
+      <input type="text" id="postHiddenTags" placeholder="在庫, inventory, 片付け"/>
+    </div>
+    <div class="toggle-wrap">
+      <label class="toggle">
+        <input type="checkbox" id="postPublic"/>
+        <span class="slider"></span>
+      </label>
+      <span class="toggle-label">一般公開する</span>
+    </div>
+    <p class="daily-limit">※ 投稿は1日2件まで</p>
+    <br>
+    <button class="btn btn-primary" onclick="submitTool()">投稿する</button>
+    <div class="modal-msg" id="postMsg"></div>
+  </div>
+</div>
+
+<!-- ── Page ── -->
+<div class="page">
+  <header class="site-header">
+    <div>
+      <span class="site-kana">まいつーるず</span>
+      <div class="site-title"><span class="dot"></span>My Tools</div>
+      <p class="site-desc">Claudeで作成したツール集 — 暮らしと遊びを、少し豊かに</p>
+    </div>
+    <div class="header-actions">
+      <span class="header-user" id="headerUser"></span>
+      <button class="btn-sm btn-sm-accent" id="btnPost" style="display:none" onclick="openPostModal()">＋ 投稿</button>
+      <button class="btn-sm btn-sm-ghost" id="btnLogout" style="display:none" onclick="logout()">ログアウト</button>
+      <button class="btn-sm btn-sm-primary" id="btnLogin" onclick="openAuthModal()">ログイン</button>
+    </div>
+  </header>
+
+  <section class="search-section">
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 16 16">
+        <circle cx="6.5" cy="6.5" r="4.5"/>
+        <line x1="10.2" y1="10.2" x2="14" y2="14"/>
+      </svg>
+      <input type="text" id="search" placeholder="ツールを検索… 例：在庫、RPG、掃除" autocomplete="off"/>
+    </div>
+    <div class="search-hint" id="hint">◈ 関連キーワードで見つかりました</div>
+  </section>
+
+  <section class="filter-section">
+    <div class="filter-label">カテゴリで絞り込む</div>
+    <div class="tag-filters" id="tagFilters"></div>
+  </section>
+
+  <div class="ornament">— ✦ —</div>
+  <div class="grid-meta">
+    <div class="grid-count" id="gridCount"></div>
+  </div>
+  <div class="grid" id="grid">
+    <div class="loading">読み込み中…</div>
+  </div>
+  <div class="empty" id="empty">
+    <div class="empty-icon">🌫</div>
+    <p>該当するツールが見つかりません</p>
+  </div>
+
+  <footer class="site-footer">
+    <p>© 2025 My Tools &nbsp;·&nbsp; Powered by Claude &amp; Supabase</p>
+  </footer>
+</div>
+
+<script>
+// ── Supabase init ──
+var SUPABASE_URL = 'https://natgiwhtzlemmcfumnur.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hdGdpd2h0emxlbW1jZnVtbnVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MDI2MDMsImV4cCI6MjA5MzA3ODYwM30.YFNlyAG_m9ceS-S_ZSK2jWW73rDi_r_EXArVir0NDUU';
+var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+var currentUser = null;
+var allTools = [];
+var activeTag = null;
+
+// ── Auth ──
+async function initAuth() {
+  var { data: { session } } = await sb.auth.getSession();
+  if (session) setUser(session.user);
+  sb.auth.onAuthStateChange(function(event, session) {
+    if (session) setUser(session.user);
+    else clearUser();
+  });
+}
+
+function setUser(user) {
+  currentUser = user;
+  document.getElementById('headerUser').textContent = user.email;
+  document.getElementById('headerUser').classList.add('show');
+  document.getElementById('btnLogin').style.display = 'none';
+  document.getElementById('btnLogout').style.display = 'inline-block';
+  document.getElementById('btnPost').style.display = 'inline-block';
+}
+
+function clearUser() {
+  currentUser = null;
+  document.getElementById('headerUser').classList.remove('show');
+  document.getElementById('btnLogin').style.display = 'inline-block';
+  document.getElementById('btnLogout').style.display = 'none';
+  document.getElementById('btnPost').style.display = 'none';
+}
+
+function openAuthModal() { document.getElementById('authModal').classList.add('show'); }
+function closeAuthModal() { document.getElementById('authModal').classList.remove('show'); }
+
+var authMode = 'login';
+function switchTab(mode) {
+  authMode = mode;
+  document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
+  document.getElementById('tabSignup').classList.toggle('active', mode === 'signup');
+  document.querySelector('#authForm .btn').textContent = mode === 'login' ? 'ログイン' : '登録する';
+  document.getElementById('authMsg').textContent = '';
+}
+
+async function handleAuth() {
+  var email = document.getElementById('authEmail').value.trim();
+  var password = document.getElementById('authPassword').value;
+  var msgEl = document.getElementById('authMsg');
+  msgEl.textContent = '処理中…'; msgEl.className = 'modal-msg';
+
+  var result;
+  if (authMode === 'login') {
+    result = await sb.auth.signInWithPassword({ email, password });
+  } else {
+    result = await sb.auth.signUp({ email, password });
+  }
+
+  if (result.error) {
+    msgEl.textContent = result.error.message;
+    msgEl.className = 'modal-msg error';
+  } else {
+    if (authMode === 'signup') {
+      msgEl.textContent = '確認メールを送信しました。メールを確認してください。';
+      msgEl.className = 'modal-msg success';
+    } else {
+      closeAuthModal();
+    }
+  }
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  loadTools();
+}
+
+// ── Post ──
+function openPostModal() {
+  if (!currentUser) { openAuthModal(); return; }
+  document.getElementById('postModal').classList.add('show');
+  document.getElementById('postMsg').textContent = '';
+}
+function closePostModal() { document.getElementById('postModal').classList.remove('show'); }
+
+async function submitTool() {
+  if (!currentUser) return;
+  var title = document.getElementById('postTitle').value.trim();
+  if (!title) { setPostMsg('タイトルは必須です', 'error'); return; }
+
+  // 1日2件制限チェック
+  var today = new Date(); today.setHours(0,0,0,0);
+  var { count } = await sb.from('tools')
+    .select('id', { count: 'exact', head: true })
+    .eq('author_id', currentUser.id)
+    .gte('created_at', today.toISOString());
+  if (count >= 2) { setPostMsg('本日の投稿上限（2件）に達しています', 'error'); return; }
+
+  var tags = document.getElementById('postTags').value.split(',').map(function(t){return t.trim();}).filter(Boolean);
+  var hiddenTags = document.getElementById('postHiddenTags').value.split(',').map(function(t){return t.trim();}).filter(Boolean);
+
+  var { error } = await sb.from('tools').insert({
+    title: title,
+    description: document.getElementById('postDesc').value.trim(),
+    icon: document.getElementById('postIcon').value || '🔧',
+    url: document.getElementById('postUrl').value.trim() || null,
+    tags: tags,
+    hidden_tags: hiddenTags,
+    is_public: document.getElementById('postPublic').checked,
+    author_id: currentUser.id
+  });
+
+  if (error) { setPostMsg(error.message, 'error'); return; }
+  setPostMsg('投稿しました！', 'success');
+  setTimeout(function(){ closePostModal(); loadTools(); }, 1000);
+}
+
+function setPostMsg(msg, type) {
+  var el = document.getElementById('postMsg');
+  el.textContent = msg;
+  el.className = 'modal-msg ' + (type || '');
+}
+
+// ── Load tools ──
+async function loadTools() {
+  var gridEl = document.getElementById('grid');
+  gridEl.innerHTML = '<div class="loading">読み込み中…</div>';
+
+  var query = sb.from('tools').select('*').eq('is_public', true).order('created_at', { ascending: false });
+  if (currentUser) {
+    query = sb.from('tools').select('*')
+      .or('is_public.eq.true,author_id.eq.' + currentUser.id)
+      .order('created_at', { ascending: false });
+  }
+
+  var { data, error } = await query;
+  if (error) { gridEl.innerHTML = '<div class="loading">読み込みに失敗しました</div>'; return; }
+
+  allTools = data || [];
+  renderAll();
+}
+
+// ── Render ──
+function renderAll() {
+  renderTags();
+  renderCards();
+  filterCards();
+}
+
+function renderTags() {
+  var tagSet = {};
+  allTools.forEach(function(t){ (t.tags||[]).forEach(function(tag){ tagSet[tag]=true; }); });
+  var allTags = Object.keys(tagSet).sort();
+  var el = document.getElementById('tagFilters');
+  el.innerHTML = '';
+  var allBtn = document.createElement('button');
+  allBtn.className = 'tag-btn' + (activeTag === null ? ' active' : '');
+  allBtn.textContent = 'すべて';
+  allBtn.onclick = function(){ activeTag = null; renderTags(); filterCards(); };
+  el.appendChild(allBtn);
+  allTags.forEach(function(tag){
+    var btn = document.createElement('button');
+    btn.className = 'tag-btn' + (activeTag === tag ? ' active' : '');
+    btn.textContent = tag;
+    btn.onclick = function(){ activeTag = activeTag === tag ? null : tag; renderTags(); filterCards(); };
+    el.appendChild(btn);
+  });
+}
+
+function renderCards() {
+  var gridEl = document.getElementById('grid');
+  gridEl.innerHTML = '';
+  if (allTools.length === 0) {
+    gridEl.innerHTML = '<div class="loading">まだツールがありません。最初に投稿してみましょう！</div>';
+    return;
+  }
+  allTools.forEach(function(tool){
+    var a = document.createElement('a');
+    a.className = 'card';
+    a.href = tool.url || '#';
+    if (tool.url) a.target = '_blank';
+    a.dataset.tags = (tool.tags||[]).join(',');
+    a.dataset.title = tool.title;
+    a.dataset.desc = tool.description || '';
+    a.dataset.hidden = (tool.hidden_tags||[]).join(',');
+    var isOwn = currentUser && tool.author_id === currentUser.id;
+    a.innerHTML =
+      '<div class="card-header">' +
+        '<div class="card-icon-wrap">' + (tool.icon||'🔧') + '</div>' +
+        '<span class="card-arrow">→</span>' +
+      '</div>' +
+      '<div class="card-title">' + esc(tool.title) + '</div>' +
+      '<div class="card-desc">' + esc(tool.description||'') + '</div>' +
+      '<div class="card-footer">' +
+        '<div class="card-tags">' + (tool.tags||[]).map(function(t){ return '<span class="card-tag">'+esc(t)+'</span>'; }).join('') + '</div>' +
+        (!tool.is_public ? '<span class="card-badge">非公開</span>' : '') +
+      '</div>';
+    gridEl.appendChild(a);
+  });
+}
+
+function filterCards() {
+  var q = document.getElementById('search').value.trim().toLowerCase();
+  var cards = document.getElementById('grid').querySelectorAll('.card');
+  var visible = 0, hiddenHit = false;
+  cards.forEach(function(card){
+    var matchTag = !activeTag || card.dataset.tags.split(',').indexOf(activeTag) !== -1;
+    var inTitle  = card.dataset.title.toLowerCase().indexOf(q) !== -1;
+    var inDesc   = card.dataset.desc.toLowerCase().indexOf(q) !== -1;
+    var inTags   = card.dataset.tags.toLowerCase().indexOf(q) !== -1;
+    var inHidden = q.length > 0 && card.dataset.hidden.toLowerCase().indexOf(q) !== -1;
+    var matchSearch = q.length === 0 || inTitle || inDesc || inTags || inHidden;
+    var show = matchTag && matchSearch;
+    card.classList.toggle('hidden', !show);
+    if (show) visible++;
+    if (show && inHidden && !inTitle && !inDesc && !inTags) hiddenHit = true;
+  });
+  var hint = document.getElementById('hint');
+  hint.className = 'search-hint' + (q.length > 0 && hiddenHit ? ' show' : '');
+  document.getElementById('empty').style.display = visible === 0 && allTools.length > 0 ? 'block' : 'none';
+  document.getElementById('gridCount').textContent = allTools.length > 0 ? visible + ' 件のツール' : '';
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Keyboard ──
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') { closeAuthModal(); closePostModal(); }
+});
+document.getElementById('authModal').addEventListener('click', function(e){ if(e.target===this) closeAuthModal(); });
+document.getElementById('postModal').addEventListener('click', function(e){ if(e.target===this) closePostModal(); });
+document.getElementById('search').addEventListener('input', filterCards);
+
+// ── Boot ──
+initAuth().then(function(){ loadTools(); });
+</script>
+</body>
+</html>
