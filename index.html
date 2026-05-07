@@ -546,20 +546,23 @@ function launchTool(tool, e) {
   // HTML / JS → fetch and open in new tab
   if(type === 'html' || type === 'js') {
     if(!url){return;}
+    // 先に新タブを開いてからコンテンツを書き込む（ポップアップブロック回避）
+    var newTab = window.open('', '_blank');
+    if(!newTab){ alert('ポップアップがブロックされています。ブラウザの設定でこのサイトのポップアップを許可してください。'); return; }
     fetch(url)
       .then(function(r){return r.text();})
       .then(function(code){
-        var blob;
+        var html;
         if(type === 'html'){
-          blob = new Blob([code], {type:'text/html'});
+          html = code;
         } else {
-          // wrap JS in a minimal HTML shell
-          blob = new Blob(['<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+esc(tool.title)+'</title></head><body><script>'+code+'<\/script></body></html>'], {type:'text/html'});
+          html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+esc(tool.title)+'</title></head><body><script>'+code+'<\/script></body></html>';
         }
-        var blobUrl = URL.createObjectURL(blob);
-        window.open(blobUrl, '_blank');
+        newTab.document.open();
+        newTab.document.write(html);
+        newTab.document.close();
       })
-      .catch(function(){ window.open(url,'_blank'); });
+      .catch(function(){ newTab.location.href = url; });
     return;
   }
 
